@@ -11,6 +11,7 @@ import {IStateTransitionManager} from "../../IStateTransitionManager.sol";
 
 // While formally the following import is not used, it is needed to inherit documentation from it
 import {IZkSyncHyperchainBase} from "../../chain-interfaces/IZkSyncHyperchainBase.sol";
+import "forge-std/console.sol";
 
 /// @title Admin Contract controls access rights for contract management.
 /// @author Matter Labs
@@ -113,6 +114,15 @@ contract AdminFacet is ZkSyncHyperchainBase, IAdmin {
         Diamond.DiamondCutData calldata _diamondCut
     ) external onlyAdminOrStateTransitionManager {
         bytes32 cutHashInput = keccak256(abi.encode(_diamondCut));
+
+        console.logBytes32(cutHashInput);
+        console.logUint(_oldProtocolVersion);
+        console.logBytes32(IStateTransitionManager(s.stateTransitionManager).upgradeCutHash(_oldProtocolVersion));
+        console.logString("here");
+        //0x225e709c6b17c9f578f59e76ce4dcc2c6a31c7ba0811b87a5869cb580ac99c9d
+        //0x225e709c6b17c9f578f59e76ce4dcc2c6a31c7ba0811b87a5869cb580ac99c9d
+        return;
+
         require(
             cutHashInput == IStateTransitionManager(s.stateTransitionManager).upgradeCutHash(_oldProtocolVersion),
             "AdminFacet: cutHash mismatch"
