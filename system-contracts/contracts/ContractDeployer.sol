@@ -45,8 +45,7 @@ contract ContractDeployer is IContractDeployer, SystemContractBase {
         _;
     }
 
-    function setDeployedCode(uint256 constructorGasLeft, bytes calldata paddedNewDeployedCode) external onlySystemEvm {
-        require(ACCOUNT_CODE_STORAGE_SYSTEM_CONTRACT.isAccountEVM(msg.sender));
+    function setDeployedCode(uint256 constructorGasLeft, bytes calldata paddedNewDeployedCode, uint256 rawBytecodeLen) external onlySystemEvm {
 
         uint256 bytecodeLen = uint256(bytes32(paddedNewDeployedCode[:32]));
         bytes memory trueBytecode = paddedNewDeployedCode[32:32 + bytecodeLen];
@@ -59,6 +58,7 @@ contract ContractDeployer is IContractDeployer, SystemContractBase {
 
         bytes32 codeHash = Utils.hashEVMBytecode(paddedNewDeployedCode);
         ACCOUNT_CODE_STORAGE_SYSTEM_CONTRACT.storeAccountConstructedCodeHash(msg.sender, codeHash);
+        ACCOUNT_CODE_STORAGE_SYSTEM_CONTRACT.storeEvmBytecodeLength(codeHash, rawBytecodeLen);
     }
 
     modifier onlySelf() {

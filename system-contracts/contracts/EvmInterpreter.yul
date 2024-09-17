@@ -17,20 +17,21 @@ object "EVMInterpreter" {
 
         // Note that this function modifies EVM memory and does not restore it. It is expected that
         // it is the last called function during execution.
-        function setDeployedCode(gasLeft, offset, len) {
+        function setDeployedCode(gasLeft, offset, paddedBytecodeLen, rawBytecodeLen) {
             // This error should never be triggered
             // require(offset > 100, "Offset too small");
 
-            mstore(sub(offset, 100), 0xD9EB76B200000000000000000000000000000000000000000000000000000000)
-            mstore(sub(offset, 96), gasLeft)
-            mstore(sub(offset, 64), 0x40)
-            mstore(sub(offset, 32), len)
+            mstore(sub(offset, 132), 0xAF81602800000000000000000000000000000000000000000000000000000000)
+            mstore(sub(offset, 128), gasLeft)
+            mstore(sub(offset, 96), 0x60)
+            mstore(sub(offset, 64), rawBytecodeLen)
+            mstore(sub(offset, 32), paddedBytecodeLen)
 
             let farCallAbi := getFarCallABI(
                 0,
                 0,
-                sub(offset, 100),
-                add(len, 100),
+                sub(offset, 132),
+                add(paddedBytecodeLen, 132),
                 gas(),
                 // Only rollup is supported for now
                 0,
@@ -342,27 +343,20 @@ object "EVMInterpreter" {
             returndatacopy(dest, add(32,_offset), _len)
         }
         
-        // Returns the length of the bytecode.
-        function _fetchDeployedCodeLen(addr) -> codeLen {
-            let codeHash := _getRawCodeHash(addr)
+        // Returns the length of the EVM bytecode.
+        function getEvmBytecodeLength(codeHash) -> codeLen {
+            // function getEvmBytecodeLength(bytes32 codeHash) external view override returns(uint256 evmBytecodeLen)
+            mstore(0, 0x46D47E7C00000000000000000000000000000000000000000000000000000000)
+            mstore(4, codeHash)
         
-            mstore(0, codeHash)
+            let success := staticcall(gas(), ACCOUNT_CODE_STORAGE_SYSTEM_CONTRACT(), 0, 36, 0, 32)
         
-            let success := staticcall(gas(), CODE_ORACLE_SYSTEM_CONTRACT(), 0, 32, 0, 0)
-        
-            switch iszero(success)
-            case 1 {
-                // The code oracle call can only fail in the case where the contract
-                // we are querying is the current one executing and it has not yet been
-                // deployed, i.e., if someone calls codesize (or extcodesize(address()))
-                // inside the constructor. In that case, code length is zero.
-                codeLen := 0
+            if iszero(success) {
+                // This error should never happen
+                revert(0, 0)
             }
-            default {
-                // The first word is the true length of the bytecode
-                returndatacopy(0, 0, 32)
-                codeLen := mload(0)
-            }
+        
+            codeLen := mload(0)
         }
         
         function getDeployedBytecode() {
@@ -2036,9 +2030,22 @@ object "EVMInterpreter" {
                         evmGasLeft := chargeGas(evmGasLeft, 2500)
                     }
             
-                    switch _isEVM(addr) 
-                        case 0  { sp := pushStackItemWithoutCheck(sp, extcodesize(addr)) }
-                        default { sp := pushStackItemWithoutCheck(sp, _fetchDeployedCodeLen(addr)) }
+                    let codeHash := _getRawCodeHash(addr)
+            
+                    switch shr(248, codeHash)
+                        case 1  { 
+                            // zkVM
+                            let lengthInWords := and(shr(224, codeHash), 0xffff)
+                            sp := pushStackItemWithoutCheck(sp, mul(32, lengthInWords)) 
+                        }
+                        case 2 { 
+                            // EVM
+                            sp := pushStackItemWithoutCheck(sp, getEvmBytecodeLength(codeHash)) 
+                        }
+                        default {
+                            revertWithGas(evmGasLeft)
+                        }
+            
                     ip := add(ip, 1)
                 }
                 case 0x3C { // OP_EXTCODECOPY
@@ -3046,13 +3053,14 @@ object "EVMInterpreter" {
             evmGasLeft := getEVMGas()
         }
 
-        let offset, len, gasToReturn := simulate(isCallerEVM, evmGasLeft, false)
+        let offset, rawBytecodeLen, gasToReturn := simulate(isCallerEVM, evmGasLeft, false)
 
-        gasToReturn := validateCorrectBytecode(offset, len, gasToReturn)
+        gasToReturn := validateCorrectBytecode(offset, rawBytecodeLen, gasToReturn)
 
-        offset, len := padBytecode(offset, len)
+        let paddedBytecodeLen
+        offset, paddedBytecodeLen := padBytecode(offset, rawBytecodeLen)
 
-        setDeployedCode(gasToReturn, offset, len)
+        setDeployedCode(gasToReturn, offset, paddedBytecodeLen, rawBytecodeLen)
     }
     object "EVMInterpreter_deployed" {
         code {
@@ -3318,27 +3326,20 @@ object "EVMInterpreter" {
                 returndatacopy(dest, add(32,_offset), _len)
             }
             
-            // Returns the length of the bytecode.
-            function _fetchDeployedCodeLen(addr) -> codeLen {
-                let codeHash := _getRawCodeHash(addr)
+            // Returns the length of the EVM bytecode.
+            function getEvmBytecodeLength(codeHash) -> codeLen {
+                // function getEvmBytecodeLength(bytes32 codeHash) external view override returns(uint256 evmBytecodeLen)
+                mstore(0, 0x46D47E7C00000000000000000000000000000000000000000000000000000000)
+                mstore(4, codeHash)
             
-                mstore(0, codeHash)
+                let success := staticcall(gas(), ACCOUNT_CODE_STORAGE_SYSTEM_CONTRACT(), 0, 36, 0, 32)
             
-                let success := staticcall(gas(), CODE_ORACLE_SYSTEM_CONTRACT(), 0, 32, 0, 0)
-            
-                switch iszero(success)
-                case 1 {
-                    // The code oracle call can only fail in the case where the contract
-                    // we are querying is the current one executing and it has not yet been
-                    // deployed, i.e., if someone calls codesize (or extcodesize(address()))
-                    // inside the constructor. In that case, code length is zero.
-                    codeLen := 0
+                if iszero(success) {
+                    // This error should never happen
+                    revert(0, 0)
                 }
-                default {
-                    // The first word is the true length of the bytecode
-                    returndatacopy(0, 0, 32)
-                    codeLen := mload(0)
-                }
+            
+                codeLen := mload(0)
             }
             
             function getDeployedBytecode() {
@@ -5012,9 +5013,22 @@ object "EVMInterpreter" {
                             evmGasLeft := chargeGas(evmGasLeft, 2500)
                         }
                 
-                        switch _isEVM(addr) 
-                            case 0  { sp := pushStackItemWithoutCheck(sp, extcodesize(addr)) }
-                            default { sp := pushStackItemWithoutCheck(sp, _fetchDeployedCodeLen(addr)) }
+                        let codeHash := _getRawCodeHash(addr)
+                
+                        switch shr(248, codeHash)
+                            case 1  { 
+                                // zkVM
+                                let lengthInWords := and(shr(224, codeHash), 0xffff)
+                                sp := pushStackItemWithoutCheck(sp, mul(32, lengthInWords)) 
+                            }
+                            case 2 { 
+                                // EVM
+                                sp := pushStackItemWithoutCheck(sp, getEvmBytecodeLength(codeHash)) 
+                            }
+                            default {
+                                revertWithGas(evmGasLeft)
+                            }
+                
                         ip := add(ip, 1)
                     }
                     case 0x3C { // OP_EXTCODECOPY

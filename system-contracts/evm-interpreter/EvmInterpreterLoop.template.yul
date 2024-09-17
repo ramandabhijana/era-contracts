@@ -476,9 +476,22 @@ for { } true { } {
             evmGasLeft := chargeGas(evmGasLeft, 2500)
         }
 
-        switch _isEVM(addr) 
-            case 0  { sp := pushStackItemWithoutCheck(sp, extcodesize(addr)) }
-            default { sp := pushStackItemWithoutCheck(sp, _fetchDeployedCodeLen(addr)) }
+        let codeHash := _getRawCodeHash(addr)
+
+        switch shr(248, codeHash)
+            case 1  { 
+                // zkVM
+                let lengthInWords := and(shr(224, codeHash), 0xffff)
+                sp := pushStackItemWithoutCheck(sp, mul(32, lengthInWords)) 
+            }
+            case 2 { 
+                // EVM
+                sp := pushStackItemWithoutCheck(sp, getEvmBytecodeLength(codeHash)) 
+            }
+            default {
+                revertWithGas(evmGasLeft)
+            }
+
         ip := add(ip, 1)
     }
     case 0x3C { // OP_EXTCODECOPY

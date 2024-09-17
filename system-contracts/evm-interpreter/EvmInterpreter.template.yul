@@ -17,20 +17,21 @@ object "EVMInterpreter" {
 
         // Note that this function modifies EVM memory and does not restore it. It is expected that
         // it is the last called function during execution.
-        function setDeployedCode(gasLeft, offset, len) {
+        function setDeployedCode(gasLeft, offset, paddedBytecodeLen, rawBytecodeLen) {
             // This error should never be triggered
             // require(offset > 100, "Offset too small");
 
-            mstore(sub(offset, 100), 0xD9EB76B200000000000000000000000000000000000000000000000000000000)
-            mstore(sub(offset, 96), gasLeft)
-            mstore(sub(offset, 64), 0x40)
-            mstore(sub(offset, 32), len)
+            mstore(sub(offset, 132), 0xAF81602800000000000000000000000000000000000000000000000000000000)
+            mstore(sub(offset, 128), gasLeft)
+            mstore(sub(offset, 96), 0x60)
+            mstore(sub(offset, 64), rawBytecodeLen)
+            mstore(sub(offset, 32), paddedBytecodeLen)
 
             let farCallAbi := getFarCallABI(
                 0,
                 0,
-                sub(offset, 100),
-                add(len, 100),
+                sub(offset, 132),
+                add(paddedBytecodeLen, 132),
                 gas(),
                 // Only rollup is supported for now
                 0,
@@ -112,13 +113,14 @@ object "EVMInterpreter" {
             evmGasLeft := getEVMGas()
         }
 
-        let offset, len, gasToReturn := simulate(isCallerEVM, evmGasLeft, false)
+        let offset, rawBytecodeLen, gasToReturn := simulate(isCallerEVM, evmGasLeft, false)
 
-        gasToReturn := validateCorrectBytecode(offset, len, gasToReturn)
+        gasToReturn := validateCorrectBytecode(offset, rawBytecodeLen, gasToReturn)
 
-        offset, len := padBytecode(offset, len)
+        let paddedBytecodeLen
+        offset, paddedBytecodeLen := padBytecode(offset, rawBytecodeLen)
 
-        setDeployedCode(gasToReturn, offset, len)
+        setDeployedCode(gasToReturn, offset, paddedBytecodeLen, rawBytecodeLen)
     }
     object "EVMInterpreter_deployed" {
         code {

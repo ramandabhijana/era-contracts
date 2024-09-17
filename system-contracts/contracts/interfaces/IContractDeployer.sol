@@ -97,7 +97,7 @@ interface IContractDeployer {
 
     function evmCodeHash(address) external view returns (bytes32);
 
-    function setDeployedCode(uint256 constructorGasLeft, bytes calldata newDeployedCode) external;
+    function setDeployedCode(uint256 constructorGasLeft, bytes calldata newDeployedCode, uint256 evmBytecodeLen) external;
 
     function constructorReturnGas() external view returns (uint256);
 }

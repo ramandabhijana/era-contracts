@@ -16,4 +16,8 @@ interface IAccountCodeStorage {
     function getCodeSize(uint256 _input) external view returns (uint256 codeSize);
 
     function isAccountEVM(address _addr) external view returns (bool);
+
+    function storeEvmBytecodeLength(bytes32 codeHash, uint256 evmBytecodeLen) external;
+
+    function getEvmBytecodeLength(bytes32 codeHash) external returns(uint256 evmBytecodeLen);
 }

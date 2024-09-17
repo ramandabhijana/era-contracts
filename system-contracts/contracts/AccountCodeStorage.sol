@@ -23,6 +23,8 @@ import {Unauthorized, InvalidCodeHash, CodeHashReason} from "./SystemContractErr
 contract AccountCodeStorage is IAccountCodeStorage {
     bytes32 private constant EMPTY_STRING_KECCAK = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
 
+    uint256 private constant EVM_BYTECODE_LEN_PREFIX = 1 << 255;
+
     modifier onlyDeployer() {
         if (msg.sender != address(DEPLOYER_SYSTEM_CONTRACT)) {
             revert Unauthorized(msg.sender);
@@ -154,5 +156,19 @@ contract AccountCodeStorage is IAccountCodeStorage {
     function isAccountEVM(address _addr) external view override returns (bool) {
         bytes32 bytecodeHash = getRawCodeHash(_addr);
         return Utils.isCodeHashEVM(bytecodeHash);
+    }
+
+    function storeEvmBytecodeLength(bytes32 codeHash, uint256 evmBytecodeLen) external onlyDeployer override {
+        assembly {
+            let hashAsKey := or(codeHash, EVM_BYTECODE_LEN_PREFIX)
+            sstore(hashAsKey, evmBytecodeLen)
+        }
+    }
+
+    function getEvmBytecodeLength(bytes32 codeHash) external view override returns(uint256 evmBytecodeLen) {
+        assembly {
+            let hashAsKey := or(codeHash, EVM_BYTECODE_LEN_PREFIX)
+            evmBytecodeLen := sload(hashAsKey)
+        }
     }
 }
