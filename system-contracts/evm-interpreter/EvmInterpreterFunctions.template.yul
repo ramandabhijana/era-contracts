@@ -145,6 +145,29 @@ function popStackItem(sp, evmGasLeft) -> a, newSp {
     newSp := sub(sp, 0x20)
 }
 
+function popStack2Items(sp, evmGasLeft) -> a, b, newSp {
+    // We can not return any error here, because it would break compatibility
+    if lt(sub(sp, 0x20), STACK_OFFSET()) {
+        revertWithGas(evmGasLeft)
+    }
+
+    a := mload(sp)
+    b := mload(sub(sp, 0x20))
+    newSp := sub(sp, 0x40)
+}
+
+function popStack3Items(sp, evmGasLeft) -> a, b, c, newSp {
+    // We can not return any error here, because it would break compatibility
+    if lt(sub(sp, 0x40), STACK_OFFSET()) {
+        revertWithGas(evmGasLeft)
+    }
+
+    a := mload(sp)
+    b := mload(sub(sp, 0x20))
+    c := mload(sub(sp, 0x40))
+    newSp := sub(sp, 0x60)
+}
+
 function pushStackItem(sp, item, evmGasLeft) -> newSp {
     if or(gt(sp, BYTECODE_OFFSET()), eq(sp, BYTECODE_OFFSET())) {
         revertWithGas(evmGasLeft)
@@ -1282,11 +1305,7 @@ function performCreate(evmGas,oldSp,isStatic) -> evmGasLeft, sp {
     }
 
     let value, offset, size
-
-    popStackCheck(oldSp, evmGasLeft, 3)
-    value, sp := popStackItemWithoutCheck(oldSp)
-    offset, sp := popStackItemWithoutCheck(sp)
-    size, sp := popStackItemWithoutCheck(sp)
+    value, offset, size, sp := popStack3Items(oldSp, evmGasLeft)
 
     checkOverflow(offset, size, evmGasLeft)
     checkMemOverflowByOffset(add(offset, size), evmGasLeft)
