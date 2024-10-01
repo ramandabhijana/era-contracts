@@ -30,6 +30,7 @@ contract DeployL2Script is Script {
         address consensusRegistryProxy;
         address multicall3;
         address forceDeployUpgraderAddress;
+        address timeWindowAsserter;
     }
 
     struct ContractsBytecodes {
@@ -42,6 +43,7 @@ contract DeployL2Script is Script {
         bytes consensusRegistryProxyBytecode;
         bytes multicall3Bytecode;
         bytes forceDeployUpgrader;
+        bytes timeWindowAsserterBytecode;
     }
 
     function run() public {
@@ -64,6 +66,7 @@ contract DeployL2Script is Script {
         deployConsensusRegistry();
         deployConsensusRegistryProxy();
         deployMulticall3();
+        deployTimeWindowAsserter();
 
         saveOutput();
     }
@@ -147,6 +150,10 @@ contract DeployL2Script is Script {
         contracts.forceDeployUpgrader = Utils.readHardhatBytecode(
             "/../l2-contracts/artifacts-zk/contracts/ForceDeployUpgrader.sol/ForceDeployUpgrader.json"
         );
+
+        contracts.timeWindowAsserterBytecode = Utils.readHardhatBytecode(
+            "/../l2-contracts/artifacts-zk/contracts/dev-contracts/TimeWindowAsserter.sol/TimeWindowAsserter.json"
+        );
     }
 
     function initializeConfig() internal {
@@ -168,6 +175,7 @@ contract DeployL2Script is Script {
         vm.serializeAddress("root", "consensus_registry_implementation", config.consensusRegistryImplementation);
         vm.serializeAddress("root", "consensus_registry_proxy", config.consensusRegistryProxy);
         vm.serializeAddress("root", "multicall3", config.multicall3);
+        vm.serializeAddress("root", "timeWindowAsserter", config.timeWindowAsserter);
         string memory toml = vm.serializeAddress("root", "l2_default_upgrader", config.forceDeployUpgraderAddress);
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/script-out/output-deploy-l2-contracts.toml");
@@ -275,6 +283,21 @@ contract DeployL2Script is Script {
 
         config.multicall3 = Utils.deployThroughL1({
             bytecode: contracts.multicall3Bytecode,
+            constructorargs: constructorData,
+            create2salt: "",
+            l2GasLimit: Utils.MAX_PRIORITY_TX_GAS,
+            factoryDeps: new bytes[](0),
+            chainId: config.chainId,
+            bridgehubAddress: config.bridgehubAddress,
+            l1SharedBridgeProxy: config.l1SharedBridgeProxy
+        });
+    }
+
+    function deployTimeWindowAsserter() internal {
+        bytes memory constructorData = "";
+
+        config.timeWindowAsserter = Utils.deployThroughL1({
+            bytecode: contracts.timeWindowAsserterBytecode,
             constructorargs: constructorData,
             create2salt: "",
             l2GasLimit: Utils.MAX_PRIORITY_TX_GAS,
