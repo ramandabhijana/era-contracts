@@ -17,7 +17,7 @@ import {IPubdataChunkPublisher} from "./interfaces/IPubdataChunkPublisher.sol";
 
 /// @dev All the system contracts introduced by zkSync have their addresses
 /// started from 2^15 in order to avoid collision with Ethereum precompiles.
-uint160 constant SYSTEM_CONTRACTS_OFFSET = {{SYSTEM_CONTRACTS_OFFSET}}; // 2^15
+uint160 constant SYSTEM_CONTRACTS_OFFSET = 0x8000; // 2^15
 
 /// @dev Unlike the value above, it is not overridden for the purpose of testing and
 /// is identical to the constant value actually used as the system contracts offset on
@@ -34,7 +34,6 @@ address constant ECADD_SYSTEM_CONTRACT = address(0x06);
 address constant ECMUL_SYSTEM_CONTRACT = address(0x07);
 address constant ECPAIRING_SYSTEM_CONTRACT = address(0x08);
 
-
 /// @dev The number of ergs that need to be spent for a single byte of pubdata regardless of the pubdata price.
 /// This variable is used to ensure the following:
 /// - That the long-term storage of the operator is compensated properly.
@@ -47,16 +46,15 @@ uint256 constant COMPUTATIONAL_PRICE_FOR_PUBDATA = 80;
 uint256 constant CURRENT_MAX_PRECOMPILE_ADDRESS = 0xff;
 
 address payable constant BOOTLOADER_FORMAL_ADDRESS = payable(address(SYSTEM_CONTRACTS_OFFSET + 0x01));
-IAccountCodeStorage constant ACCOUNT_CODE_STORAGE_SYSTEM_CONTRACT = IAccountCodeStorage(
-    address(SYSTEM_CONTRACTS_OFFSET + 0x02)
-);
+IAccountCodeStorage constant ACCOUNT_CODE_STORAGE_SYSTEM_CONTRACT =
+    IAccountCodeStorage(address(SYSTEM_CONTRACTS_OFFSET + 0x02));
 INonceHolder constant NONCE_HOLDER_SYSTEM_CONTRACT = INonceHolder(address(SYSTEM_CONTRACTS_OFFSET + 0x03));
 IKnownCodesStorage constant KNOWN_CODE_STORAGE_CONTRACT = IKnownCodesStorage(address(SYSTEM_CONTRACTS_OFFSET + 0x04));
-IImmutableSimulator constant IMMUTABLE_SIMULATOR_SYSTEM_CONTRACT = IImmutableSimulator(
-    address(SYSTEM_CONTRACTS_OFFSET + 0x05)
-);
+IImmutableSimulator constant IMMUTABLE_SIMULATOR_SYSTEM_CONTRACT =
+    IImmutableSimulator(address(SYSTEM_CONTRACTS_OFFSET + 0x05));
 IContractDeployer constant DEPLOYER_SYSTEM_CONTRACT = IContractDeployer(address(SYSTEM_CONTRACTS_OFFSET + 0x06));
-IContractDeployer constant REAL_DEPLOYER_SYSTEM_CONTRACT = IContractDeployer(address(REAL_SYSTEM_CONTRACTS_OFFSET + 0x06));
+IContractDeployer constant REAL_DEPLOYER_SYSTEM_CONTRACT =
+    IContractDeployer(address(REAL_SYSTEM_CONTRACTS_OFFSET + 0x06));
 
 // A contract that is allowed to deploy any codehash
 // on any address. To be used only during an upgrade.
@@ -73,7 +71,8 @@ IBaseToken constant REAL_BASE_TOKEN_SYSTEM_CONTRACT = IBaseToken(address(REAL_SY
 address constant KECCAK256_SYSTEM_CONTRACT = address(0x8010);
 
 ISystemContext constant SYSTEM_CONTEXT_CONTRACT = ISystemContext(payable(address(SYSTEM_CONTRACTS_OFFSET + 0x0b)));
-ISystemContext constant REAL_SYSTEM_CONTEXT_CONTRACT = ISystemContext(payable(address(REAL_SYSTEM_CONTRACTS_OFFSET + 0x0b)));
+ISystemContext constant REAL_SYSTEM_CONTEXT_CONTRACT =
+    ISystemContext(payable(address(REAL_SYSTEM_CONTRACTS_OFFSET + 0x0b)));
 
 IBootloaderUtilities constant BOOTLOADER_UTILITIES = IBootloaderUtilities(address(SYSTEM_CONTRACTS_OFFSET + 0x0c));
 
@@ -84,9 +83,8 @@ ICompressor constant COMPRESSOR_CONTRACT = ICompressor(address(SYSTEM_CONTRACTS_
 
 IComplexUpgrader constant COMPLEX_UPGRADER_CONTRACT = IComplexUpgrader(address(SYSTEM_CONTRACTS_OFFSET + 0x0f));
 
-IPubdataChunkPublisher constant PUBDATA_CHUNK_PUBLISHER = IPubdataChunkPublisher(
-    address(SYSTEM_CONTRACTS_OFFSET + 0x11)
-);
+IPubdataChunkPublisher constant PUBDATA_CHUNK_PUBLISHER =
+    IPubdataChunkPublisher(address(SYSTEM_CONTRACTS_OFFSET + 0x11));
 
 /// @dev If the bitwise AND of the extraAbi[2] param when calling the MSG_VALUE_SIMULATOR
 /// is non-zero, the call will be assumed to be a system one.
